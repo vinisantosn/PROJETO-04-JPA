@@ -28,28 +28,37 @@ public class VendaJPA implements Persistente {
     }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "venda_seq")
-    @SequenceGenerator(name = "venda_seq", sequenceName = "sq_venda", initialValue = 1, allocationSize = 1)
+    @GeneratedValue(strategy=GenerationType.SEQUENCE, generator="venda_seq")
+    @SequenceGenerator(name="venda_seq", sequenceName="sq_venda", initialValue = 1, allocationSize = 1)
     private Long id;
 
-    @Column(name = "CODIGO", length = 10, nullable = false, unique = true)
+    @Column(name = "CODIGO", nullable = false, unique = true)
     private String codigo;
 
     @ManyToOne
-    @JoinColumn(name = "id_cliente_fk", foreignKey = @ForeignKey(name = "fk_venda_cliente"), referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "id_cliente_fk",
+            foreignKey = @ForeignKey(name = "fk_venda_cliente"),
+            referencedColumnName = "id", nullable = false
+    )
     private ClienteJPA cliente;
 
-    @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL)
+    /*
+     * OBS: Não é uma boa prática utiliar FetchType.EAGER pois ele sempre irá trazer todos os objetos da collection
+     * mesmo sem precisar utilizar. Fazer um método específico para buscar tudo e utilizar quando precisar
+     *
+     * @see IVendaJpaDAO consultarComCollection
+     */
+    @OneToMany(mappedBy = "venda", cascade = CascadeType.ALL/*, fetch = FetchType.EAGER*/)
     private Set<ProdutoQuantidadeJPA> produtos;
 
     @Column(name = "VALOR_TOTAL", nullable = false)
     private BigDecimal valorTotal;
 
-    @Column(name = "DATA_VENDA")
+    @Column(name = "DATA_VENDA", nullable = false)
     private Instant dataVenda;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "STATUS", nullable = false)
+    @Column(name = "STATUS_VENDA", nullable = false)
     private Status status;
 
     public VendaJPA() {
@@ -64,11 +73,11 @@ public class VendaJPA implements Persistente {
         this.codigo = codigo;
     }
 
-    public ClienteJPA getClienteJPA() {
+    public ClienteJPA getCliente() {
         return cliente;
     }
 
-    public void setClienteJPA(ClienteJPA cliente) {
+    public void setCliente(ClienteJPA cliente) {
         this.cliente = cliente;
     }
 
@@ -84,8 +93,9 @@ public class VendaJPA implements Persistente {
             ProdutoQuantidadeJPA produtpQtd = op.get();
             produtpQtd.adicionar(quantidade);
         } else {
-            // Criar fabrica para criar ProdutoQuantidadeJPA
+            // Criar fabrica para criar ProdutoQuantidade
             ProdutoQuantidadeJPA prod = new ProdutoQuantidadeJPA();
+            prod.setVenda(this);
             prod.setProduto(produto);
             prod.adicionar(quantidade);
             produtos.add(prod);
@@ -106,7 +116,7 @@ public class VendaJPA implements Persistente {
 
         if (op.isPresent()) {
             ProdutoQuantidadeJPA produtpQtd = op.get();
-            if (produtpQtd.getQuantidade() > quantidade) {
+            if (produtpQtd.getQuantidade()>quantidade) {
                 produtpQtd.remover(quantidade);
                 recalcularValorTotalVenda();
             } else {
@@ -124,7 +134,7 @@ public class VendaJPA implements Persistente {
     }
 
     public Integer getQuantidadeTotalProdutos() {
-        // Soma a quantidade getQuantidade() de todos os objetos ProdutoQuantidadeJPA
+        // Soma a quantidade getQuantidade() de todos os objetos ProdutoQuantidade
         int result = produtos.stream()
                 .reduce(0, (partialCountResult, prod) -> partialCountResult + prod.getQuantidade(), Integer::sum);
         return result;
@@ -174,6 +184,7 @@ public class VendaJPA implements Persistente {
     public void setProdutos(Set<ProdutoQuantidadeJPA> produtos) {
         this.produtos = produtos;
     }
+
 
 
 }

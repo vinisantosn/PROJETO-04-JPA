@@ -321,7 +321,7 @@ public class VendaJpaDaoTest {
         VendaJPA venda = new VendaJPA();
         venda.setCodigo(codigo);
         venda.setDataVenda(Instant.now());
-        venda.setClienteJPA(this.cliente);
+        venda.setCliente(this.cliente);
         venda.setStatus(VendaJPA.Status.INICIADA);
         venda.adicionarProduto(this.produto, 2);
         return venda;
